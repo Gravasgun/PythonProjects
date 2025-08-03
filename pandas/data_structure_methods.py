@@ -1,4 +1,7 @@
 import pandas as pd
+import gymnasium as gym
+import networkx as nx
+
 
 # 创建 DataFrame
 data = {
@@ -8,7 +11,6 @@ data = {
     "数学": [85, 78, 90, 72, 88, 91, 84, 79, 86, 90],
     "英语": [92, 88, 81, 95, 86, 89, 82, 93, 77, 91]
 }
-df = pd.DataFrame(data)
 
 data = pd.Series([1,2,3,4,5])
 # 1.head()和tail()
@@ -18,7 +20,7 @@ print(data.head(2))
 1    2
 dtype: int64
 """
-print(df.head(4))
+print(data.head(4))
 """
    姓名 性别  年龄  数学  英语
 0  张伟  男  18  85  92
@@ -32,7 +34,7 @@ print(data.tail(2))
 4    5
 dtype: int64
 """
-print(df.tail(4))
+print(data.tail(4))
 """
    姓名 性别  年龄  数学  英语
 6  杨杰  男  17  84  82
@@ -43,14 +45,14 @@ print(df.tail(4))
 
 # shape
 print(data.shape) # (5,)
-print(df.shape) # (10, 5)
+print(data.shape) # (10, 5)
 
 # columns
-print(df.columns) # Index(['姓名', '性别', '年龄', '数学', '英语'], dtype='object')
+print(data.columns) # Index(['姓名', '性别', '年龄', '数学', '英语'], dtype='object')
 
 # dtypes
 print(data.dtypes) # int64
-print(df.dtypes)
+print(data.dtypes)
 """
 姓名    object
 性别    object
@@ -73,7 +75,7 @@ dtypes: int64(1)
 memory usage: 172.0 bytes
 None
 """
-print(df.info())
+print(data.info())
 """
 <class 'pandas.core.frame.DataFrame'>
 RangeIndex: 10 entries, 0 to 9
@@ -103,7 +105,7 @@ min      1.000000
 max      5.000000
 dtype: float64
 """
-print(df.describe())
+print(data.describe())
 """
               年龄         数学         英语
 count  10.000000  10.000000  10.000000
