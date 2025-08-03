@@ -4,14 +4,15 @@ import os
 import sys
 import shutil
 import re
+import filecmp
 
 # 定义常量
 MYGIT_DIR = ".mygit"
 COMMITS_DIR = os.path.join(MYGIT_DIR, "commits")
 INDEX_DIR = os.path.join(MYGIT_DIR, "index")
-RESTORE_MARK = os.path.join(INDEX_DIR, ".restored_from_commit")
-
+STRUCTURE_CHANGE_MARK = os.path.join(INDEX_DIR, "structure_change.txt")  # 统一结构变更标记文件
 program_name = os.path.basename(sys.argv[0])
+
 
 # 检查 mygit 仓库存在
 if not os.path.exists(MYGIT_DIR):
@@ -25,7 +26,6 @@ if not os.path.exists(INDEX_DIR):
 # 提取参数（添加的文件列表）
 files = sys.argv[1:]
 
-
 # 获取最近一次提交目录
 def get_latest_commit_dir():
     if not os.path.exists(COMMITS_DIR):
@@ -36,26 +36,39 @@ def get_latest_commit_dir():
     commit_ids = sorted([int(i) for i in commit_ids])
     return os.path.join(COMMITS_DIR, str(commit_ids[-1]))
 
-
 latest_commit_dir = get_latest_commit_dir()
-restored_files = []
+structure_changed_files = []  # 用于记录结构性变更的文件名
 
 # 逐个处理要添加的文件
 for file in files:
-    # 情况 1：当前目录存在该文件 → 直接复制到 index/
+    index_path = os.path.join(INDEX_DIR, file)
+
+    # 情况 1：当前目录存在该文件
     if os.path.exists(file):
-        shutil.copy2(file, os.path.join(INDEX_DIR, file))
-    # 情况 2：当前目录不存在，但上一版本存在 → 从 commits/ 中复制进 index/
+        # 如果 index 中已存在且内容一致 → 不处理
+        if os.path.exists(index_path) and filecmp.cmp(file, index_path, shallow=False):
+            continue  # 文件内容未变，跳过
+
+        # 否则，复制文件到 index
+        shutil.copy2(file, index_path)
+
+        # 判断是否结构性变更：当前文件也存在于最近一次 commit 中
+        if latest_commit_dir and os.path.exists(os.path.join(latest_commit_dir, file)):
+            structure_changed_files.append(file)
+
+    # 情况 2：工作区没文件，但最近一次提交中有 → 是恢复文件
     elif latest_commit_dir and os.path.exists(os.path.join(latest_commit_dir, file)):
-        shutil.copy2(os.path.join(latest_commit_dir, file), os.path.join(INDEX_DIR, file))
-        restored_files.append(file)
-    # 情况 3：两个地方都没有，报错
+        shutil.copy2(os.path.join(latest_commit_dir, file), index_path)
+        structure_changed_files.append(file)
+
+    # 情况 3：两个地方都找不到
     else:
         print(f"{program_name}: error: can not open '{file}'", file=sys.stderr)
         sys.exit(1)
 
-# 记录恢复的文件名列表（供 commit 脚本识别）
-if restored_files:
-    with open(RESTORE_MARK, "a") as f:
-        for f_name in restored_files:
+
+# 统一结构性变更标记写入文件
+if structure_changed_files:
+    with open(STRUCTURE_CHANGE_MARK, "a") as f:
+        for f_name in structure_changed_files:
             f.write(f"{f_name}\n")
